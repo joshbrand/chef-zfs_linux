@@ -21,19 +21,34 @@
 case node['platform']
 when "ubuntu"
   if node['platform_version'].to_f >= 10.04
- 
-    include_recipe "apt"
- 
-    apt_repository "zfs-native" do
-      uri "http://ppa.launchpad.net/zfs-native/stable/ubuntu"
+    
+    include_recipe 'apt'
+    
+    apt_repository 'zfs-native' do
+      uri 'http://ppa.launchpad.net/zfs-native/stable/ubuntu'
       distribution node['lsb']['codename']
       components ['main']
-      keyserver "keyserver.ubuntu.com"
-      key "F6B0FC61"
+      keyserver 'keyserver.ubuntu.com'
+      key 'F6B0FC61'
       action :add
     end
-
-    package "ubuntu-zfs"
+    
+    # Ensure headers for the current kernel are installed
+    uname = Mixlib::ShellOut.new('uname -r')
+    kernel = uname.run_command.stdout.chomp
+    package "linux-headers-#{kernel}" do
+      not_if { File.directory?("/usr/src/linux-headers-#{kernel}") }
+    end
+    
+    package 'ubuntu-zfs' do
+      action :install
+      notifies :run, 'execute[load_zfs_module]', :immediately
+    end
+    
+    execute 'load_zfs_module' do
+      command 'modprobe zfs'
+      action :nothing
+    end
     
   end
 end

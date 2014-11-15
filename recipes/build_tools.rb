@@ -17,20 +17,8 @@
 # limitations under the License.
 #
 
-# Setup pre-reqs
-
-case node['platform_family']
-when "rhel"
-  # Setup required packaged from the Development Tools group
-  ['autoconf', 'automake', 'binutils', 'bison', 'flex', 'gcc', 'gcc-c++', 'gettext', 'libtool', 'make', 'patch', 'pkgconfig', 'redhat-rpm-config', 'rpm-build'].each do |rheldevtool|
-    package rheldevtool
-  end
-  # Additional required packages
-  # http://zfsonlinux.org/generic-rpm.html
-  ['zlib-devel', 'libuuid-devel', 'libblkid-devel', 'libselinux-devel', 'parted', 'lsscsi', 'wget', 'dkms', 'git', 'kernel-devel', 'kernel-headers'].each do |moredevtools|
-    package moredevtools
-  end
-when 'debian'
+# Setup build pre-reqs
+if node['platform_family'] == 'debian'
   if node['platform_version'].to_f >= 12.04
     prereqpkgs = ['build-essential', 'gawk', 'alien', 'fakeroot', 'zlib1g-dev', 'uuid-dev', 'libblkid-dev', 'libselinux-dev', 'parted', 'lsscsi', 'wget', 'automake', 'libtool', 'git']
     if node['platform_version'] == '12.04'
@@ -47,8 +35,8 @@ when 'debian'
     krnvercmd = Mixlib::ShellOut.new('uname -r')
     krnvercmd.run_command
     krnver = krnvercmd.stdout.chomp
-    unless File.directory?("/usr/src/linux-headers-#{krnver}")
-      package "linux-headers-#{krnver}"
+    package "linux-headers-#{krnver}" do
+      not_if { File.directory?("/usr/src/linux-headers-#{krnver}") }
     end
   end
 end

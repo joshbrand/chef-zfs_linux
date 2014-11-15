@@ -1,6 +1,6 @@
 zfs\_linux Cookbook
 ==================
-Installs & configures zfs on linux. Currently primarily targeting Ubuntu.
+Installs & configures zfs on Ubuntu.
 
 Requirements
 ------------
@@ -27,30 +27,6 @@ Installs the zfs-auto-snapshot package, which automatically sets up rotating sna
 #### zfs\_linux::auto-scrub
 Uses cron.d (via the cron cookbook) to setup cron jobs on Sunday morning for each zpool. If greater than 4 zpools are present, runs the checks once a month on the first Sunday.
 
-#### zfs\_linux::snapshot-pruning
-Complements the auto-snapshot recipe by providing a mechanism (via attributes) for controlling how many snapshots are retained on a daily basis. Action is only taken if attributes like the following are set:
-
-```json
-"zfs": {
-  "filesystems": [
-    {
-      "zfsfilesytem1": {
-        "zpool": "zpool1",
-        "snapshot_retention": {
-          "monthly": "3",
-          "weekly": "2",
-          "daily": "15"
-        }
-      }
-    },
-    ...
-  ]
-}
-```
-
-The retention values (each are optional) dicate the number of the most recent snapshots to keep. So in the example above, each day the snapshots of zpool1/zfsfilesystem1 will be evaluated and only the 15 most recent daily snapshots will be kept, etc. For any given snapshot type you can set the value to "0" to have all snapshots of that type deleted.
-
-
 #### zfs\_linux::source
 This recipe was developed to allow the deployment of ZoL from a specific commit. Apply it to your node to pull down the ZFS revision from git (specified in your node's attributes).
 
@@ -63,6 +39,49 @@ __WARNING:__ On Debian-family systems, the current build method will disable aut
 6. Enable auto-start again for your node's services
 7. Reboot
 
+Resources/Providers
+-----
+### zfs_linux_snapshot
+#### Actions
+
+- `:create`: Creates a snapshot of the dataset
+- `:prune`: Deletes a datasets snapshots down to a specified number of
+  snapshots
+- `:purge`: Deletes all snapshots for a dataset
+
+#### Attribute Parameters
+
+- `dataset`: Name of the zpool/fileset. Defaults to the resource name.
+- `prefix`: String to prefix the snapshot name. Defaults to `zfs-chef-snap`.
+  When pruning/purging snapshots, used to filter the list of snapshots
+  to be deleted (set to `nil` to disable the search filter).
+- `snaps_to_retain`: The number of snapshots to retain (only applies to
+  the `:prune` action). Defaults to `31`
+- `append_timestamp`: Boolean to determine whether a timestamp (in
+  the form of `-YY-MM-DD-HHmm`) is appended to the snapshot prefix.
+  Defaults to `true`
+
+#### Examples
+```ruby
+# Create a snapshot with a specific name
+zfs_linux_snapshot 'tank/mydataset' do
+  prefix 'myweeklysnapshot'
+  append_timestamp false
+end
+
+# Delete all snapshots that match 'weekly'
+zfs_linux_snapshot 'tank/mydataset' do
+  prefix 'weekly'
+  action :purge
+end
+
+# Remove all but the last 6 monthly snapshots
+zfs_linux_snapshot 'tank/mydataset' do
+  prefix 'zfs-auto-snap_monthly'
+  snaps_to_retain 6
+  action :prune
+end
+```
 
 Contributing
 ------------
