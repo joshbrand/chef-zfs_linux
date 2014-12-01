@@ -1,5 +1,7 @@
 zfs\_linux Cookbook
 ==================
+[![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/biola/chef-zfs_linux)
+
 Installs & configures zfs on Ubuntu.
 
 Requirements
